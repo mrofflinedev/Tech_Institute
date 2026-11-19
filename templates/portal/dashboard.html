@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% block title %}Student Dashboard - Tech Institute{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1>Welcome, {{ request.user.get_full_name|default:request.user.username }}</h1>
+        <p style="color: #64748b;">Admission No: <strong>{{ request.user.admission_number|default:"Pending Assignment" }}</strong></p>
+    </div>
+    <div>
+        <a href="{% url 'accounts:profile' %}" class="btn" style="background: #475569;">My Profile</a>
+        <a href="{% url 'portal:download_transcript' %}" class="btn" style="margin-left: 0.5rem;">Download Transcript</a>
+    </div>
+</div>
+
+<!-- Summary Stat Cards -->
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Active Courses</p>
+        <h3 style="font-size: 1.8rem; color: #0f172a; margin-top: 0.3rem;">{{ enrollments|length }}</h3>
+    </div>
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Total Fee Balance</p>
+        <h3 style="font-size: 1.8rem; color: #dc2626; margin-top: 0.3rem;">KES {{ total_balance }}</h3>
+    </div>
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Pending Assignments</p>
+        <h3 style="font-size: 1.8rem; color: #2563eb; margin-top: 0.3rem;">{{ pending_assignments_count }}</h3>
+    </div>
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Study Materials</p>
+        <h3 style="font-size: 1.8rem; color: #16a34a; margin-top: 0.3rem;">{{ materials|length }}</h3>
+    </div>
+</div>
+
+<!-- Institute Noticeboard -->
+<div class="card" style="margin-bottom: 2rem; border-left: 5px solid #2563eb;">
+    <h2>Noticeboard & Announcements</h2>
+    {% for notice in announcements %}
+        <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>{{ notice.title }} {% if notice.course %}({{ notice.course.code }}){% endif %}</strong>
+                <small style="color: #64748b;">{{ notice.created_at|date:"M d, Y" }}</small>
+            </div>
+            <p style="margin-top: 0.3rem; color: #334155;">{{ notice.message }}</p>
+            <small style="color: #64748b;">Posted by {{ notice.posted_by.get_full_name|default:notice.posted_by.username }}</small>
+        </div>
+    {% empty %}
+        <p style="color: #64748b;">No new announcements at the moment.</p>
+    {% endfor %}
+</div>
+
+<!-- Enrolled Courses & Study Materials -->
+<div class="grid">
+    <div class="card">
+        <h2>My Courses & Fee Status</h2>
+        {% for enrollment in enrollments %}
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.8rem; margin-bottom: 0.8rem;">
+                <strong>{{ enrollment.course.code }} - {{ enrollment.course.title }}</strong><br>
+                <span style="font-size: 0.9rem; color: #475569;">
+                    Paid: KES {{ enrollment.fee_paid }} | Balance: <strong>KES {{ enrollment.fee_balance }}</strong>
+                </span><br>
+                {% if enrollment.fee_balance > 0 %}
+                    <a href="{% url 'payments:pay_fee' enrollment.id %}" class="btn" style="margin-top: 0.5rem; font-size: 0.85rem;">Pay via M-Pesa</a>
+                {% else %}
+                    <span class="badge-success" style="display: inline-block; margin-top: 0.5rem;">Fees Cleared</span>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p>No active courses yet. <a href="{% url 'courses:course_list' %}">Browse courses</a> or check <a href="{% url 'admissions:my_applications' %}">My Applications</a>.</p>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <h2>Latest Study Materials</h2>
+        {% for material in materials %}
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.8rem; margin-bottom: 0.8rem;">
+                <strong>{{ material.course.code }}:</strong> {{ material.title }}<br>
+                <small style="color: #64748b;">Uploaded {{ material.uploaded_at|date:"M d, Y" }}</small><br>
+                <a href="{{ material.file.url }}" class="btn" style="margin-top: 0.4rem; font-size: 0.85rem;" download>Download Notes</a>
+            </div>
+        {% empty %}
+            <p>No study materials uploaded for your courses yet.</p>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Weekly 3-Hour Class Timetable -->
+<div class="card" style="margin-bottom: 2rem;">
+    <h2>Weekly Class Timetable (3-Hour Sessions)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Day</th>
+                <th>Time (3 Hours)</th>
+                <th>Course</th>
+                <th>Instructor</th>
+                <th>Room / Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sched in schedules %}
+            <tr>
+                <td><strong>{{ sched.day_of_week }}</strong></td>
+                <td>{{ sched.start_time|time:"h:i A" }} - {{ sched.end_time|time:"h:i A" }}</td>
+                <td>{{ sched.course.code }} - {{ sched.course.title }}</td>
+                <td>{{ sched.course.instructor.get_full_name|default:sched.course.instructor.username|default:"TBA" }}</td>
+                <td>{{ sched.room_or_link }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">No classes scheduled yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Assignments Table -->
+<div class="card" style="margin-bottom: 2rem;">
+    <h2>Coursework & Assignments</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Course</th>
+                <th>Title</th>
+                <th>Due Date</th>
+                <th>Status & Grade</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assignment in assignments %}
+            <tr>
+                <td>{{ assignment.course.code }}</td>
+                <td>{{ assignment.title }}</td>
+                <td>{{ assignment.due_date|date:"M d, Y H:i" }}</td>
+                <td>
+                    {% for sub_id, sub in submission_map.items %}
+                        {% if sub_id == assignment.id %}
+                            <span class="badge-success">Submitted</span>
+                            {% if sub.grade %}
+                                <strong style="margin-left: 0.4rem;">({{ sub.grade }})</strong>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if assignment.id not in submission_map %}
+                        <span style="color: #dc2626; font-size: 0.9rem;">Pending</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'portal:submit_assignment' assignment.id %}" class="btn" style="font-size: 0.85rem;">
+                        {% if assignment.id in submission_map %}Resubmit{% else %}Submit Work{% endif %}
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">No assignments posted yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Exam Results Table -->
+<div class="card">
+    <h2>Published Exam Results</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Course</th>
+                <th>CAT (30)</th>
+                <th>Exam (70)</th>
+                <th>Total</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for result in results %}
+            <tr>
+                <td>{{ result.course.code }} - {{ result.course.title }}</td>
+                <td>{{ result.cat_score }}</td>
+                <td>{{ result.exam_score }}</td>
+                <td>{{ result.total_score }}</td>
+                <td><strong>{{ result.grade }}</strong></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">No exam results published yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

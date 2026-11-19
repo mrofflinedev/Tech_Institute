@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Courses - Tech Institute{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <h1>Available IT Courses</h1>
+    <p style="color: #64748b;">Select a program below to view details or apply online.</p>
+</div>
+
+<div class="grid">
+    {% for course in courses %}
+        <div class="card">
+            <span style="color: #2563eb; font-weight: bold; font-size: 0.9rem;">{{ course.code }}</span>
+            <h2 style="margin-top: 0.3rem;">{{ course.title }}</h2>
+            <p style="color: #475569; margin-bottom: 1rem; font-size: 0.95rem;">
+                {{ course.description|truncatewords:22 }}
+            </p>
+            <p style="margin-bottom: 0.3rem;"><strong>Duration:</strong> {{ course.duration_months }} Months</p>
+            <p style="margin-bottom: 1rem;"><strong>Tuition Fee:</strong> KES {{ course.tuition_fee }}</p>
+
+            <a href="{% url 'courses:course_detail' course.id %}" class="btn" style="background: #475569;">View Details</a>
+
+            {% if user.is_authenticated %}
+                {% if course.id in enrolled_course_ids %}
+                    <span class="badge-success" style="margin-left: 0.5rem;">Applied</span>
+                {% elif user.role == 'student' %}
+                    <form method="POST" action="{% url 'admissions:apply_course' course.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="margin-left: 0.4rem;">Apply Now</button>
+                    </form>
+                {% endif %}
+            {% else %}
+                <a href="{% url 'accounts:login' %}?next={% url 'courses:course_detail' course.id %}" class="btn" style="margin-left: 0.4rem;">Login to Apply</a>
+            {% endif %}
+        </div>
+    {% empty %}
+        <div class="card">
+            <p>No courses are currently open for admission. Please check back soon.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

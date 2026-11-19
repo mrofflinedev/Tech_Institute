@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Student Registration{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 500px; margin: 2rem auto;">
+    <h2>Create Student Account</h2>
+    <form method="POST">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                <label>{{ field.label }}</label>
+                {{ field }}
+                {% if field.help_text %}
+                    <small style="color: #64748b; display: block;">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                    <small style="color: #dc2626; display: block;">{{ error }}</small>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">Register</button>
+    </form>
+    <p style="margin-top: 1rem; font-size: 0.9rem; text-align: center;">
+        Already have an account? <a href="{% url 'accounts:login' %}">Sign in</a>
+    </p>
+</div>
+{% endblock %}

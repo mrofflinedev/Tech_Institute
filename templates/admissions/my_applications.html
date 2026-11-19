@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}My Applications{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>My Course Applications</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Course</th>
+                <th>Tuition Fee</th>
+                <th>Balance Due</th>
+                <th>Status</th>
+                <th>Applied On</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for app in applications %}
+            <tr>
+                <td>{{ app.course.code }} - {{ app.course.title }}</td>
+                <td>KES {{ app.course.tuition_fee }}</td>
+                <td>KES {{ app.fee_balance }}</td>
+                <td><strong>{{ app.get_status_display }}</strong></td>
+                <td>{{ app.enrolled_at|date:"M d, Y" }}</td>
+                <td>
+                    {% if app.fee_balance > 0 %}
+                        <a href="{% url 'payments:pay_fee' app.id %}" class="btn">Pay via M-Pesa</a>
+                    {% else %}
+                        <span class="badge-success">Fees Cleared</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6">You haven't applied for any courses yet. <a href="{% url 'courses:course_list' %}">Browse courses</a>.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

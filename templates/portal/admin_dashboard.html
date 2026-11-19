@@ -1,0 +1,291 @@
+{% extends 'base.html' %}
+{% block title %}Admin Control Center - Tech Institute{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1>Institute Administration</h1>
+        <p style="color: #64748b;">Manage admissions, IT courses, 3-hour timetables, notices, user roles, and M-Pesa collections.</p>
+    </div>
+    <a href="/admin/" class="btn" style="background: #475569;">Django System Admin</a>
+</div>
+
+<!-- Summary Stat Cards -->
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Total M-Pesa Revenue</p>
+        <h3 style="font-size: 1.8rem; color: #16a34a; margin-top: 0.3rem;">KES {{ total_revenue|floatformat:0 }}</h3>
+    </div>
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Registered Students</p>
+        <h3 style="font-size: 1.8rem; color: #2563eb; margin-top: 0.3rem;">{{ total_students }}</h3>
+    </div>
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Instructors</p>
+        <h3 style="font-size: 1.8rem; color: #0f172a; margin-top: 0.3rem;">{{ total_instructors }}</h3>
+    </div>
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Active Courses</p>
+        <h3 style="font-size: 1.8rem; color: #7c3aed; margin-top: 0.3rem;">{{ total_courses }}</h3>
+    </div>
+</div>
+
+<!-- Pending Student Applications -->
+<div class="card" style="margin-bottom: 2rem;">
+    <h2>Pending Student Applications ({{ pending_enrollments|length }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Phone</th>
+                <th>Course Applied</th>
+                <th>Fee Paid</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for app in pending_enrollments %}
+            <tr>
+                <td>{{ app.student.get_full_name|default:app.student.username }}</td>
+                <td>{{ app.student.phone_number|default:"N/A" }}</td>
+                <td>{{ app.course.code }} - {{ app.course.title }}</td>
+                <td>KES {{ app.fee_paid }}</td>
+                <td>
+                    <a href="{% url 'portal:manage_enrollment' app.id 'approve' %}" class="btn" style="background: #16a34a; padding: 0.3rem 0.6rem; font-size: 0.85rem;">Approve</a>
+                    <a href="{% url 'portal:manage_enrollment' app.id 'reject' %}" class="btn" style="background: #dc2626; padding: 0.3rem 0.6rem; font-size: 0.85rem; margin-left: 0.3rem;">Reject</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">No pending applications awaiting approval.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Add New Course & Recent M-Pesa Transactions -->
+<div class="grid">
+    <div class="card">
+        <h2>Add New IT Course</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_course">
+            {% for field in course_form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Publish Course</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Recent M-Pesa Transactions</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Amount</th>
+                    <th>Receipt</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in recent_transactions %}
+                <tr>
+                    <td>{{ tx.student.username }}</td>
+                    <td>{{ tx.enrollment.course.code }}</td>
+                    <td>KES {{ tx.amount }}</td>
+                    <td>{{ tx.mpesa_receipt_number|default:"—" }}</td>
+                    <td><strong>{{ tx.status }}</strong></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5">No M-Pesa transactions yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Schedule 3-Hour Class & Active Timetable -->
+<div class="card" style="margin-top: 2rem;">
+    <h2>Schedule a 3-Hour Class Session</h2>
+    <form method="POST" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end; margin-bottom: 1.5rem;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_schedule">
+        {% for field in schedule_form %}
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>{{ field.label }}</label>
+                {{ field }}
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn" style="height: 42px;">Add to Timetable</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Day</th>
+                <th>Time (3 Hours)</th>
+                <th>Course</th>
+                <th>Room / Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sched in schedules %}
+            <tr>
+                <td><strong>{{ sched.day_of_week }}</strong></td>
+                <td>{{ sched.start_time|time:"h:i A" }} - {{ sched.end_time|time:"h:i A" }}</td>
+                <td>{{ sched.course.code }} - {{ sched.course.title }}</td>
+                <td>{{ sched.room_or_link }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4">No class sessions scheduled yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Noticeboard & Post Announcement -->
+<div class="grid" style="margin-top: 2rem;">
+    <div class="card" style="border-left: 5px solid #2563eb;">
+        <h2>Published Notices</h2>
+        {% for notice in announcements %}
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                <div>
+                    <strong>{{ notice.title }} {% if notice.course %}({{ notice.course.code }}){% endif %}</strong>
+                    <p style="margin-top: 0.25rem; color: #334155;">{{ notice.message }}</p>
+                    <small style="color: #64748b;">Audience: {{ notice.get_audience_display }} | {{ notice.created_at|date:"M d, Y" }}</small>
+                </div>
+                <form method="POST" action="{% url 'portal:delete_announcement' notice.id %}" onsubmit="return confirm('Delete this announcement?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn" style="background: #dc2626; padding: 0.25rem 0.6rem; font-size: 0.8rem;">Delete</button>
+                </form>
+            </div>
+        {% empty %}
+            <p style="color: #64748b;">No notices published yet.</p>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <h2>Post Noticeboard Announcement</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="post_notice">
+            {% for field in notice_form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Publish Announcement</button>
+        </form>
+    </div>
+</div>
+
+<!-- Course & Instructor Assignment Manager -->
+<div class="card" style="margin-top: 2rem;">
+    <h2>Course & Instructor Assignment ({{ all_courses|length }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Course Title</th>
+                <th>Tuition (KES)</th>
+                <th>Current Instructor</th>
+                <th>Assign / Reassign Lecturer</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in all_courses %}
+            <tr>
+                <td><strong>{{ c.code }}</strong></td>
+                <td>{{ c.title }}</td>
+                <td>KES {{ c.tuition_fee }}</td>
+                <td>
+                    {% if c.instructor %}
+                        <span class="badge-success">{{ c.instructor.get_full_name|default:c.instructor.username }}</span>
+                    {% else %}
+                        <span style="color: #dc2626; font-size: 0.9rem;">Unassigned</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="POST" action="{% url 'portal:assign_course_instructor' c.id %}" style="display: flex; gap: 0.5rem; align-items: center;">
+                        {% csrf_token %}
+                        <select name="instructor_id" style="padding: 0.35rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                            <option value="">-- Unassigned --</option>
+                            {% for inst in instructors %}
+                                <option value="{{ inst.id }}" {% if c.instructor_id == inst.id %}selected{% endif %}>
+                                    {{ inst.get_full_name|default:inst.username }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn" style="padding: 0.35rem 0.7rem; font-size: 0.85rem;">Save</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">No courses created yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- User & Instructor Role Manager -->
+<!-- Meet the Team Manager -->
+<div class="grid" style="margin-top: 2rem;">
+    <div class="card">
+        <h2>Add Team Member (About Us Page)</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_team">
+            {% for field in team_form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Upload Team Member</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Active Leadership & Faculty ({{ team_members|length }})</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Photo</th>
+                    <th>Name & Role</th>
+                    <th>Order</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for member in team_members %}
+                <tr>
+                    <td>
+                        {% if member.photo %}
+                            <img src="{{ member.photo.url }}" alt="{{ member.full_name }}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                            <span style="color: #94a3b8;">No Photo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ member.full_name }}</strong><br>
+                        <small style="color: #64748b;">{{ member.role_title }}</small>
+                    </td>
+                    <td>{{ member.display_order }}</td>
+                    <td>
+                        <a href="{% url 'portal:delete_team_member' member.id %}" class="btn" style="background: #dc2626; padding: 0.3rem 0.6rem; font-size: 0.85rem;">Remove</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No team members uploaded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

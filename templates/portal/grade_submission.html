@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Grade Submission{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 550px; margin: 0 auto;">
+    <h2>Grade Work: {{ submission.assignment.title }}</h2>
+    <p style="margin-bottom: 1rem;">
+        <strong>Student:</strong> {{ submission.student.get_full_name|default:submission.student.username }}<br>
+        <strong>File:</strong> <a href="{{ submission.submitted_file.url }}" download>Download Student File</a>
+    </p>
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Grade / Score (e.g. A, 85%, 28/30)</label>
+            {{ form.grade }}
+        </div>
+        <div class="form-group">
+            <label>Lecturer Feedback</label>
+            {{ form.feedback }}
+        </div>
+        <button type="submit" class="btn">Save Grade</button>
+        <a href="{% url 'portal:instructor_dashboard' %}" style="margin-left: 1rem; color: #64748b;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

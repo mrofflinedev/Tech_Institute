@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Pay Tuition Fee{% endblock %}
+
+{% block content %}
+<div class="grid">
+    <div class="card">
+        <h2>Pay Fees: {{ enrollment.course.code }}</h2>
+        <p style="margin-bottom: 1.2rem; line-height: 1.6;">
+            <strong>Course:</strong> {{ enrollment.course.title }}<br>
+            <strong>Enrollment Status:</strong> <span class="badge-success">{{ enrollment.get_status_display }}</span><br>
+            <strong>Total Tuition:</strong> KES {{ enrollment.course.tuition_fee }}<br>
+            <strong>Paid So Far:</strong> KES {{ enrollment.fee_paid }}<br>
+            <strong>Balance Due:</strong> <span style="color: #dc2626; font-weight: bold;">KES {{ enrollment.fee_balance }}</span>
+        </p>
+
+        {% if enrollment.fee_balance > 0 %}
+            <form method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="phone_number">M-Pesa Phone Number (e.g. 254712345678)</label>
+                    <input type="text" id="phone_number" name="phone_number" value="{{ request.user.phone_number|default:'' }}" placeholder="2547XXXXXXXX" required>
+                </div>
+                <div class="form-group">
+                    <label for="amount">Amount to Pay (KES)</label>
+                    <input type="number" id="amount" name="amount" min="1" max="{{ enrollment.fee_balance }}" value="1" required>
+                </div>
+                <button type="submit" class="btn">Send M-Pesa Prompt</button>
+                <a href="{% url 'portal:dashboard' %}" style="margin-left: 1rem; color: #64748b;">Cancel</a>
+            </form>
+        {% else %}
+            <p style="color: #166534; font-weight: bold; margin-bottom: 1rem;">All tuition fees for this course have been cleared!</p>
+            <a href="{% url 'portal:dashboard' %}" class="btn">Back to Dashboard</a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Payment History</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Receipt</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td>{{ tx.mpesa_receipt_number|default:"Pending" }}</td>
+                    <td>KES {{ tx.amount }}</td>
+                    <td><strong>{{ tx.status }}</strong></td>
+                    <td>{{ tx.created_at|date:"M d, H:i" }}</td>
+                    <td>
+                        {% if tx.status == 'Completed' %}
+                            <a href="{% url 'payments:download_receipt' tx.id %}" class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">PDF Receipt</a>
+                        {% elif tx.status == 'Pending' %}
+                            <a href="{% url 'payments:simulate_success' tx.id %}" class="btn" style="background: #16a34a; padding: 0.3rem 0.6rem; font-size: 0.8rem;">Confirm (Test)</a>
+                        {% else %}
+                            <span style="color: #94a3b8; font-size: 0.85rem;">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5">No transactions recorded yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

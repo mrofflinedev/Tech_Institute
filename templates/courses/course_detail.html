@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}{{ course.title }} - Tech Institute{% endblock %}
+
+{% block content %}
+<div class="card">
+    <span style="color: #2563eb; font-weight: bold;">{{ course.code }}</span>
+    <h1 style="margin: 0.4rem 0 1rem 0;">{{ course.title }}</h1>
+
+    <div class="grid" style="margin-bottom: 1.5rem;">
+        <div>
+            <p><strong>Duration:</strong> {{ course.duration_months }} Months</p>
+            <p style="margin-top: 0.5rem;"><strong>Tuition Fee:</strong> KES {{ course.tuition_fee }}</p>
+            <p style="margin-top: 0.5rem;">
+                <strong>Instructor:</strong>
+                {% if course.instructor %}
+                    {{ course.instructor.get_full_name|default:course.instructor.username }}
+                {% else %}
+                    To Be Assigned
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <h3>Course Overview</h3>
+            <p style="margin-top: 0.5rem; line-height: 1.6; color: #334155;">
+                {{ course.description|default:"Course syllabus and practical lab details will be provided upon enrollment." }}
+            </p>
+        </div>
+    </div>
+
+    {% if user.is_authenticated %}
+        {% if enrollment %}
+            <p class="badge-success" style="display: inline-block; margin-bottom: 1rem;">
+                Application Status: {{ enrollment.get_status_display }}
+            </p><br>
+            {% if enrollment.fee_balance > 0 %}
+                <a href="{% url 'payments:pay_fee' enrollment.id %}" class="btn">Pay Fee Balance (KES {{ enrollment.fee_balance }})</a>
+            {% else %}
+                <a href="{% url 'portal:dashboard' %}" class="btn">Go to Student Portal</a>
+            {% endif %}
+        {% elif user.role == 'student' %}
+            <form method="POST" action="{% url 'admissions:apply_course' course.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn">Submit Course Application</button>
+            </form>
+        {% endif %}
+    {% else %}
+        <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="btn">Login to Apply</a>
+        <a href="{% url 'accounts:register' %}" class="btn" style="background: #0f172a; margin-left: 0.5rem;">Register New Account</a>
+    {% endif %}
+
+    <div style="margin-top: 1.5rem;">
+        <a href="{% url 'courses:course_list' %}" style="color: #64748b; text-decoration: none;">&larr; Back to All Courses</a>
+    </div>
+</div>
+{% endblock %}

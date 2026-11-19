@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %}Submit Assignment{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <h2>Submit: {{ assignment.title }}</h2>
+    <p style="margin-bottom: 1rem;">{{ assignment.instructions }}</p>
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div style="margin-bottom: 1rem;">
+            <label for="submitted_file"><strong>Upload Document (PDF, DOCX, ZIP):</strong></label><br><br>
+            <input type="file" name="submitted_file" id="submitted_file" required>
+        </div>
+        <button type="submit" class="btn">Upload Submission</button>
+        <a href="{% url 'portal:dashboard' %}" style="margin-left: 1rem; color: #64748b;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

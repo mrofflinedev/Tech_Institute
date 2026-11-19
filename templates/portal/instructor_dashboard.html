@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% block title %}Instructor Dashboard - Tech Institute{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+    <h1>Instructor Portal: {{ request.user.get_full_name|default:request.user.username }}</h1>
+    <p style="color: #64748b;">Manage your assigned courses, post announcements, upload notes, and publish grades.</p>
+</div>
+
+<!-- Summary Stats -->
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Assigned Courses</p>
+        <h3 style="font-size: 1.8rem; color: #0f172a; margin-top: 0.3rem;">{{ taught_courses|length }}</h3>
+    </div>
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Active Students</p>
+        <h3 style="font-size: 1.8rem; color: #2563eb; margin-top: 0.3rem;">{{ enrollments|length }}</h3>
+    </div>
+    <div class="card">
+        <p style="color: #64748b; font-size: 0.9rem;">Submitted Work</p>
+        <h3 style="font-size: 1.8rem; color: #16a34a; margin-top: 0.3rem;">{{ submissions|length }}</h3>
+    </div>
+</div>
+
+<!-- Noticeboard & Post Announcement -->
+<div class="grid">
+    <div class="card" style="border-left: 5px solid #2563eb;">
+        <h2>Active Notices</h2>
+        {% for notice in announcements %}
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem;">
+                <strong>{{ notice.title }} {% if notice.course %}({{ notice.course.code }}){% endif %}</strong>
+                <p style="margin-top: 0.25rem; color: #334155;">{{ notice.message }}</p>
+                <small style="color: #64748b;">{{ notice.created_at|date:"M d, Y" }}</small>
+            </div>
+        {% empty %}
+            <p style="color: #64748b;">No notices posted yet.</p>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <h2>Post Course / Institute Notice</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="post_notice">
+            {% for field in notice_form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Publish Notice</button>
+        </form>
+    </div>
+</div>
+
+<!-- Upload Notes & Post Assignments -->
+<div class="grid">
+    <div class="card">
+        <h2>Upload Study Material</h2>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_material">
+            {% for field in material_form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Upload Notes</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Create New Assignment</h2>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_assignment">
+            {% for field in assignment_form %}
+                <div class="form-group">
+                    <label>{{ field.label }}</label>
+                    {{ field }}
+                </div>
+            {% endfor %}
+            <button type="submit" class="btn">Post Assignment</button>
+        </form>
+    </div>
+</div>
+
+<!-- Enter Exam Marks -->
+<div class="card" style="margin-bottom: 2rem;">
+    <h2>Publish Student Exam Marks (CAT + Exam)</h2>
+    <form method="POST" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: end;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="enter_marks">
+        {% for field in result_form %}
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>{{ field.label }}</label>
+                {{ field }}
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn" style="height: 42px;">Save Marks</button>
+    </form>
+</div>
+
+<!-- Teaching Timetable -->
+<div class="card" style="margin-bottom: 2rem;">
+    <h2>My Teaching Schedule (3-Hour Classes)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Day</th>
+                <th>Time (3 Hours)</th>
+                <th>Course</th>
+                <th>Room / Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sched in schedules %}
+            <tr>
+                <td><strong>{{ sched.day_of_week }}</strong></td>
+                <td>{{ sched.start_time|time:"h:i A" }} - {{ sched.end_time|time:"h:i A" }}</td>
+                <td>{{ sched.course.code }} - {{ sched.course.title }}</td>
+                <td>{{ sched.room_or_link }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4">No classes scheduled for your courses yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Student Assignment Submissions -->
+<div class="card">
+    <h2>Student Assignment Submissions</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Student</th>
+                <th>Course & Assignment</th>
+                <th>Submitted File</th>
+                <th>Grade</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sub in submissions %}
+            <tr>
+                <td>{{ sub.student.get_full_name|default:sub.student.username }}</td>
+                <td>{{ sub.assignment.course.code }} - {{ sub.assignment.title }}</td>
+                <td><a href="{{ sub.submitted_file.url }}" download>Download Work</a></td>
+                <td><strong>{{ sub.grade|default:"Ungraded" }}</strong></td>
+                <td>
+                    <a href="{% url 'portal:grade_submission' sub.id %}" class="btn" style="font-size: 0.85rem;">Grade</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">No student submissions received yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+        {% for notice in announcements %}
+            <div style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                <div>
+                    <strong>{{ notice.title }} {% if notice.course %}({{ notice.course.code }}){% endif %}</strong>
+                    <p style="margin-top: 0.25rem; color: #334155;">{{ notice.message }}</p>
+                    <small style="color: #64748b;">{{ notice.created_at|date:"M d, Y" }}</small>
+                </div>
+                {% if notice.posted_by == request.user or request.user.is_staff %}
+                    <form method="POST" action="{% url 'portal:delete_announcement' notice.id %}" onsubmit="return confirm('Delete this announcement?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn" style="background: #dc2626; padding: 0.25rem 0.6rem; font-size: 0.8rem;">Delete</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% empty %}
+            <p style="color: #64748b;">No notices posted yet.</p>
+        {% endfor %}
+
+{% endblock %}
