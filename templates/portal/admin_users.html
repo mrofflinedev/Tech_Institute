@@ -1,0 +1,12 @@
+<h2>Manage Users</h2>
+<a href="{% url 'portal:admin_create_instructor' %}">+ Create Instructor</a> |
+<a href="{% url 'portal:admin_users' %}?role=instructor">Instructors</a> |
+<a href="{% url 'portal:admin_users' %}?role=student">Students</a> |
+<a href="{% url 'portal:admin_users' %}">All</a>
+<table border="1">
+<tr><th>Username</th><th>Role</th><th>Email</th><th>Action</th></tr>
+{% for u in users %}
+<tr><td>{{ u.username }}</td><td>{{ u.role }}</td><td>{{ u.email }}</td>
+<td>{% if u != request.user %}<a href="{% url 'portal:admin_delete_user' u.id %}" style="color:red">Delete</a>{% endif %}</td></tr>
+{% empty %}<tr><td>No users</td></tr>{% endfor %}
+</table>

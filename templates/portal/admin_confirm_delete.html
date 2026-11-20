@@ -1,0 +1,6 @@
+<h2>Delete {{ delete_user.role }} {{ delete_user.username }}?</h2>
+<p>This will delete the user AND all their records. Cannot be undone.</p>
+<form method="post">{% csrf_token %}
+<button type="submit" style="background:red;color:white">Yes, Delete Forever</button>
+<a href="{% url 'portal:admin_users' %}">Cancel</a>
+</form>

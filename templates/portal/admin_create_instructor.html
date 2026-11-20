@@ -1,0 +1,9 @@
+<h2>Create Instructor - Admin Only</h2>
+<form method="post">{% csrf_token %}
+<input name="username" placeholder="Username" required><br>
+<input name="email" type="email" placeholder="Email" required><br>
+<input name="first_name" placeholder="First Name"><br>
+<input name="last_name" placeholder="Last Name"><br>
+<input name="password" type="password" placeholder="Password" required><br>
+<button type="submit">Create Instructor</button>
+</form>
