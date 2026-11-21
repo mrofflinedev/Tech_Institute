@@ -1,9 +1,16 @@
 {% extends 'base.html' %}
-{% block title %}Student Login{% endblock %}
+{% block title %}Student Login - TECH INSTITUTE{% endblock %}
 
 {% block content %}
 <div class="card" style="max-width: 450px; margin: 2rem auto;">
-    <h2>Sign In to Tech Institute</h2>
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.85rem;">
+        <button type="button" id="tab-student" onclick="setLoginRole('student')" class="btn" style="flex: 1; background: #2563eb;">Student Login</button>
+        <button type="button" id="tab-staff" onclick="setLoginRole('staff')" class="btn" style="flex: 1; background: #64748b;">Staff Login</button>
+    </div>
+
+    <h2 id="login-heading">Student Login</h2>
+    <p id="login-subtext" style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.15rem;">Sign in with your approved student account to access courses, grades, and M-Pesa fee clearance.</p>
+
     <form method="POST">
         {% csrf_token %}
         <div class="form-group">
@@ -14,10 +21,29 @@
             <label>Password</label>
             {{ form.password }}
         </div>
-        <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">Login</button>
+        <button type="submit" id="login-submit-btn" class="btn" style="width: 100%; margin-top: 0.5rem;">Login as Student</button>
     </form>
-    <p style="margin-top: 1rem; font-size: 0.9rem; text-align: center;">
+
+    <p id="register-prompt" style="margin-top: 1rem; font-size: 0.9rem; text-align: center;">
         Don't have an account? <a href="{% url 'accounts:register' %}">Register here</a>
     </p>
 </div>
+
+<script>
+function setLoginRole(role) {
+    const isStaff = role === 'staff';
+    document.title = (isStaff ? 'Staff Login' : 'Student Login') + ' - TECH INSTITUTE';
+    document.getElementById('login-heading').textContent = isStaff ? 'Staff Login' : 'Student Login';
+    document.getElementById('login-subtext').textContent = isStaff
+        ? 'Sign in with your Admin or Instructor account to access the Staff Portal.'
+        : 'Sign in with your approved student account to access courses, grades, and M-Pesa fee clearance.';
+    document.getElementById('login-submit-btn').textContent = isStaff ? 'Login as Staff' : 'Login as Student';
+    document.getElementById('tab-student').style.background = isStaff ? '#64748b' : '#2563eb';
+    document.getElementById('tab-staff').style.background = isStaff ? '#0f172a' : '#64748b';
+    document.getElementById('register-prompt').style.display = isStaff ? 'none' : 'block';
+}
+if (new URLSearchParams(window.location.search).get('role') === 'staff') {
+    setLoginRole('staff');
+}
+</script>
 {% endblock %}

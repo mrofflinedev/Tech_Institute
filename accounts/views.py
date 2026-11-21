@@ -17,7 +17,7 @@ def redirect_by_role(user):
         return redirect('portal:instructor_dashboard')
     if user.is_superuser or user.role == 'admin':
         return redirect('portal:admin_dashboard')
-    return redirect('portal:dashboard')
+    return redirect('accounts:login')
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -27,7 +27,8 @@ def login_view(request):
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
-            login(request, user)
+            # pending admin approval
+            User.objects.filter(id=user.id).update(is_active=False, admission_number=None, role="student")
             messages.success(request, f"Welcome back, {user.first_name or user.username}!")
             next_url = request.GET.get('next')
             if next_url:
@@ -113,7 +114,7 @@ def download_admission_letter(request, enrollment_id):
         "",
         f"Dear {student_name},",
         "",
-        "We are pleased to inform you that your application to join TECH_INSTITUTE has been",
+        "We are pleased to inform you that your application to join TECH INSTITUTE has been",
         "approved. You have been admitted into the following academic program:",
         "",
         f"Program / Course: {enrollment.course.code} - {enrollment.course.title}",
@@ -124,7 +125,7 @@ def download_admission_letter(request, enrollment_id):
         "Please retain this letter for student ID issuance and portal verification.",
         "",
         "Sincerely,",
-        "Registrar, TECH_INSTITUTE"
+        "Registrar, TECH INSTITUTE"
     ]
 
     for line in lines:
@@ -142,45 +143,52 @@ def download_admission_letter(request, enrollment_id):
     return response
 
 def register_view(request):
+    import re
     from .forms import StudentRegistrationForm
     if request.method == 'POST':
         username = (request.POST.get('username') or '').strip()
-        first_name = (request.POST.get('first_name') or '').strip()
-        last_name = (request.POST.get('last_name') or '').strip()
-        email = (request.POST.get('email') or '').strip()
+        first_name = ' '.join((request.POST.get('first_name') or '').strip().split())
+        last_name = ' '.join((request.POST.get('last_name') or '').strip().split())
+        email = (request.POST.get('email') or '').strip().lower()
         phone = (request.POST.get('phone_number') or '').strip()
         password1 = request.POST.get('password1') or ''
         password2 = request.POST.get('password2') or ''
 
         if not username:
-            messages.error(request, "Username is required. Please enter a username.")
-        elif User.objects.filter(username=username).exists():
-            messages.error(request, "That username is already taken. Try another.")
-        elif email and User.objects.filter(email=email).exists():
-            messages.error(request, "That email is already registered. Try logging in.")
-        elif not password1 or password1 != password2:
-            messages.error(request, "Passwords do not match.")
-        elif len(password1) < 8:
-            messages.error(request, "Password must be at least 8 characters.")
+            messages.error(request, 'Username is required.')
+        elif User.objects.filter(username__iexact=username).exists():
+            messages.error(request, 'That username is already taken. Try another.')
+        elif not first_name or not re.match(r'^[A-Za-z\s]+$', first_name):
+            messages.error(request, 'First name must contain only letters and spaces (no numbers or symbols).')
+        elif not last_name or not re.match(r'^[A-Za-z\s]+$', last_name):
+            messages.error(request, 'Last name must contain only letters and spaces (no numbers or symbols).')
+        elif not email:
+            messages.error(request, 'Email address is required.')
+        elif User.objects.filter(email__iexact=email).exists():
+            messages.error(request, 'That email address is already registered to another account.')
+        elif password1 != password2:
+            messages.error(request, 'Passwords do not match.')
+        elif len(password1) < 8 or not re.search(r'[A-Za-z]', password1) or not re.search(r'[0-9]', password1) or not re.search(r'[^A-Za-z0-9\s]', password1):
+            messages.error(request, 'Password must be at least 8 characters and include letters, numbers, and symbols (e.g. @, #, $).')
         else:
             if phone.startswith('07') or phone.startswith('01'):
                 phone = '254' + phone[1:]
             elif phone.startswith('+254'):
                 phone = phone[1:]
-            user = User.objects.create_user(
-                username=username, email=email, password=password1,
-                first_name=first_name, last_name=last_name,
+            student = User.objects.create_user(
+                username=username,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                password=password1,
+                role='student',
+                phone_number=phone,
+                is_active=False,
+                admission_number=None,
             )
-            if hasattr(user, 'phone_number'):
-                user.phone_number = phone
-            if hasattr(user, 'role'):
-                user.role = 'student'
-            user.save()
-            login(request, user)
-            messages.success(request, f"Welcome, {username}!")
-            return redirect_by_role(user)
-        form = StudentRegistrationForm(request.POST)
-        return render(request, 'accounts/register.html', {'form': form})
-
-    form = StudentRegistrationForm()
-    return render(request, 'accounts/register.html', {'form': form})
+            User.objects.filter(id=student.id).update(is_active=False, admission_number=None, role='student')
+            messages.success(request, 'Account created! Your account is awaiting Admin approval before you can log in and receive your Student Registration Number.')
+            return redirect('accounts:login')
+    else:
+        form = StudentRegistrationForm()
+    return render(request, 'accounts/register.html', {'form': form if 'form' in locals() else StudentRegistrationForm()})

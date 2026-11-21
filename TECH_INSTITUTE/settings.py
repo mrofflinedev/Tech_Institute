@@ -1,5 +1,5 @@
 """
-Django settings for TECH_INSTITUTE project.
+Django settings for TECH INSTITUTE project.
 """
 
 import os

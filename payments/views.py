@@ -130,7 +130,7 @@ def download_receipt(request, transaction_id):
         text_x = 185
 
     p.setFont("Helvetica-Bold", 20)
-    p.drawString(text_x, height - 70, "TECH_INSTITUTE")
+    p.drawString(text_x, height - 70, "TECH INSTITUTE")
     p.setFont("Helvetica", 11)
     p.drawString(text_x, height - 95, "Official Tuition Fee Payment Receipt")
     p.line(50, height - 155, width - 50, height - 155)
@@ -171,7 +171,7 @@ def download_receipt(request, transaction_id):
 
     p.line(50, y - 10, width - 50, y - 10)
     p.setFont("Helvetica-Oblique", 10)
-    p.drawString(50, y - 35, "Thank you for studying at TECH_INSTITUTE. This is a system-generated receipt.")
+    p.drawString(50, y - 35, "Thank you for studying at TECH INSTITUTE. This is a system-generated receipt.")
 
     draw_official_stamp(p, x=430, y=y - 95)
     p.showPage()

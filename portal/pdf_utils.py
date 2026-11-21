@@ -12,7 +12,7 @@ def draw_pdf_header(p, width, height, subtitle):
         text_x = 185
 
     p.setFont("Helvetica-Bold", 20)
-    p.drawString(text_x, height - 70, "TECH_INSTITUTE")
+    p.drawString(text_x, height - 70, "TECH INSTITUTE")
     p.setFont("Helvetica", 11)
     p.drawString(text_x, height - 95, subtitle)
     p.line(50, height - 155, width - 50, height - 155)
@@ -35,7 +35,7 @@ def draw_official_stamp(p, x=430, y=130):
     p.roundRect(-81, -38, 162, 76, 4, stroke=1, fill=0)
 
     p.setFont("Helvetica-Bold", 11)
-    p.drawCentredString(0, 20, "TECH_INSTITUTE")
+    p.drawCentredString(0, 20, "TECH INSTITUTE")
 
     p.line(-72, 13, 72, 13)
     p.line(-72, -10, 72, -10)

@@ -16,6 +16,53 @@
     </form>
 </div>
 
+
+<div class="card" style="margin-top: 2rem; border-left: 5px solid #d97706;">
+    <h2>Pending Student Account Approvals ({{ pending_students|length }})</h2>
+    <p style="color: #64748b; margin-bottom: 1rem;">Newly registered students cannot log in until approved here. Approving generates their official Student Registration Number.</p>
+    {% if pending_students %}
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 0.6rem;">Full Name</th>
+                    <th style="padding: 0.6rem;">Username</th>
+                    <th style="padding: 0.6rem;">Email Address</th>
+                    <th style="padding: 0.6rem;">Phone</th>
+                    <th style="padding: 0.6rem;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for st in pending_students %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 0.6rem;">{{ st.get_full_name|default:st.username }}</td>
+                    <td style="padding: 0.6rem;">{{ st.username }}</td>
+                    <td style="padding: 0.6rem;">{{ st.email }}</td>
+                    <td style="padding: 0.6rem;">{{ st.phone_number|default:'N/A' }}</td>
+                    <td style="padding: 0.6rem; display: flex; gap: 0.5rem;">
+                        <form method="POST" style="margin: 0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="approve_student">
+                            <input type="hidden" name="student_id" value="{{ st.id }}">
+                            <button type="submit" class="btn" style="background: #16a34a;">Approve &amp; Issue Reg No.</button>
+                        </form>
+                        <form method="POST" style="margin: 0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reject_student">
+                            <input type="hidden" name="student_id" value="{{ st.id }}">
+                            <button type="submit" class="btn" style="background: #dc2626;">Reject</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: #64748b;">No pending student registrations awaiting approval.</p>
+    {% endif %}
+</div>
+
 {% endblock %}
 
 {% block content %}
@@ -320,6 +367,53 @@
         <div class="form-group" style="margin-bottom: 0;"><label>Temporary Password *</label><input type="password" name="password" required></div>
         <button type="submit" class="btn" style="height: 42px;">Create Instructor</button>
     </form>
+</div>
+
+
+<div class="card" style="margin-top: 2rem; border-left: 5px solid #d97706;">
+    <h2>Pending Student Account Approvals ({{ pending_students|length }})</h2>
+    <p style="color: #64748b; margin-bottom: 1rem;">Newly registered students cannot log in until approved here. Approving generates their official Student Registration Number.</p>
+    {% if pending_students %}
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 0.6rem;">Full Name</th>
+                    <th style="padding: 0.6rem;">Username</th>
+                    <th style="padding: 0.6rem;">Email Address</th>
+                    <th style="padding: 0.6rem;">Phone</th>
+                    <th style="padding: 0.6rem;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for st in pending_students %}
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 0.6rem;">{{ st.get_full_name|default:st.username }}</td>
+                    <td style="padding: 0.6rem;">{{ st.username }}</td>
+                    <td style="padding: 0.6rem;">{{ st.email }}</td>
+                    <td style="padding: 0.6rem;">{{ st.phone_number|default:'N/A' }}</td>
+                    <td style="padding: 0.6rem; display: flex; gap: 0.5rem;">
+                        <form method="POST" style="margin: 0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="approve_student">
+                            <input type="hidden" name="student_id" value="{{ st.id }}">
+                            <button type="submit" class="btn" style="background: #16a34a;">Approve &amp; Issue Reg No.</button>
+                        </form>
+                        <form method="POST" style="margin: 0;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reject_student">
+                            <input type="hidden" name="student_id" value="{{ st.id }}">
+                            <button type="submit" class="btn" style="background: #dc2626;">Reject</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: #64748b;">No pending student registrations awaiting approval.</p>
+    {% endif %}
 </div>
 
 {% endblock %}

@@ -31,7 +31,7 @@ def contact_us(request):
                 subject=subject,
                 message=message_text,
             )
-            messages.success(request, "Thank you for contacting TECH_INSTITUTE! Our admissions team will reach out shortly.")
+            messages.success(request, "Thank you for contacting TECH INSTITUTE! Our admissions team will reach out shortly.")
             return redirect('courses:contact_us')
         else:
             messages.error(request, "Please fill in all required fields.")

@@ -1,5 +1,5 @@
 """
-WSGI config for TECH_INSTITUTE project.
+WSGI config for TECH INSTITUTE project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

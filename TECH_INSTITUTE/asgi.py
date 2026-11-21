@@ -1,5 +1,5 @@
 """
-ASGI config for TECH_INSTITUTE project.
+ASGI config for TECH INSTITUTE project.
 
 It exposes the ASGI callable as a module-level variable named ``application``.
 

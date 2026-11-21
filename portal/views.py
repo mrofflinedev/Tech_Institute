@@ -91,7 +91,7 @@ def download_transcript(request):
         text_x = 185
 
     p.setFont("Helvetica-Bold", 20)
-    p.drawString(text_x, height - 70, "TECH_INSTITUTE")
+    p.drawString(text_x, height - 70, "TECH INSTITUTE")
     p.setFont("Helvetica", 11)
     p.drawString(text_x, height - 95, "Official Academic Results Transcript")
     p.line(50, height - 155, width - 50, height - 155)
@@ -276,6 +276,22 @@ def admin_dashboard(request):
     if request.method == 'POST':
         action = request.POST.get('action')
 
+        if action == 'approve_student':
+            sid = request.POST.get('student_id')
+            st = get_object_or_404(User, id=sid, role='student')
+            reg_no = f'TI/2026/{st.id:04d}'
+            User.objects.filter(id=st.id).update(is_active=True, admission_number=reg_no)
+            messages.success(request, f'Approved {st.get_full_name() or st.username} and assigned Reg No: {reg_no}')
+            return redirect('portal:admin_dashboard')
+
+        if action == 'reject_student':
+            sid = request.POST.get('student_id')
+            st = get_object_or_404(User, id=sid, role='student', is_active=False)
+            uname = st.username
+            st.delete()
+            messages.warning(request, f'Rejected and removed pending student account {uname}.')
+            return redirect('portal:admin_dashboard')
+
         if action == 'create_instructor':
             uname = request.POST.get('username', '').strip()
             pwd = request.POST.get('password', '').strip()
@@ -343,6 +359,7 @@ def admin_dashboard(request):
         'schedules': schedules,
         'announcements': announcements,
         'users': users,
+        'pending_students': pending_students,
         'inquiries': inquiries,
         'all_courses': all_courses,
         'instructors': instructors,
@@ -572,6 +589,7 @@ def admin_dashboard(request):
         'schedules': schedules,
         'announcements': announcements,
         'users': users,
+        'pending_students': pending_students,
         'inquiries': inquiries,
         'all_courses': all_courses,
         'instructors': instructors,
