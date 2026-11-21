@@ -173,6 +173,7 @@ def download_receipt(request, transaction_id):
     p.setFont("Helvetica-Oblique", 10)
     p.drawString(50, y - 35, "Thank you for studying at TECH_INSTITUTE. This is a system-generated receipt.")
 
+    draw_official_stamp(p, x=430, y=y - 95)
     p.showPage()
     p.save()
     return response

@@ -56,7 +56,7 @@
                         {% if tx.status == 'Completed' %}
                             <a href="{% url 'payments:download_receipt' tx.id %}" class="btn" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">PDF Receipt</a>
                         {% elif tx.status == 'Pending' %}
-                            <a href="{% url 'payments:simulate_success' tx.id %}" class="btn" style="background: #16a34a; padding: 0.3rem 0.6rem; font-size: 0.8rem;">Confirm (Test)</a>
+                            <span style="color:#64748b;font-size:0.85rem;">Awaiting M-Pesa PIN...</span>
                         {% else %}
                             <span style="color: #94a3b8; font-size: 0.85rem;">—</span>
                         {% endif %}

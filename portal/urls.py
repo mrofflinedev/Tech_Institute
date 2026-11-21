@@ -19,4 +19,7 @@ urlpatterns = [
     path('announcement/<int:announcement_id>/delete/', views.delete_announcement, name='delete_announcement'),
     path('team/<int:member_id>/delete/', views.delete_team_member, name='delete_team_member'),
 
+    path('admin/users/', views.admin_users, name='admin_users'),
+    path('admin/users/create-instructor/', views.admin_create_instructor, name='admin_create_instructor'),
+    path('admin/users/<int:user_id>/delete/', views.admin_delete_user, name='admin_delete_user'),
 ]

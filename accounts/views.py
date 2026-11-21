@@ -1,5 +1,5 @@
+from django.contrib.auth import get_user_model, login, logout, update_session_auth_hash
 from django.shortcuts import render, redirect
-from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -8,39 +8,20 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from admissions.models import Enrollment
 from portal.pdf_utils import draw_pdf_header, draw_official_stamp
-from .forms import StudentRegistrationForm, ProfileUpdateForm
+from .forms import ProfileUpdateForm
 
+User = get_user_model()
 
-def register_view(request):
-    if request.user.is_authenticated:
-        if request.user.role == 'admin' or request.user.is_staff:
-            return redirect('portal:admin_dashboard')
-        if request.user.role == 'instructor':
-            return redirect('portal:instructor_dashboard')
-        return redirect('portal:dashboard')
-
-    if request.method == 'POST':
-        form = StudentRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.role = 'student'
-            user.save()
-            login(request, user)
-            messages.success(request, "Account created successfully! Welcome to Tech Institute.")
-            return redirect('portal:dashboard')
-    else:
-        form = StudentRegistrationForm()
-
-    return render(request, 'accounts/register.html', {'form': form})
-
+def redirect_by_role(user):
+    if user.role == 'instructor':
+        return redirect('portal:instructor_dashboard')
+    if user.is_superuser or user.role == 'admin':
+        return redirect('portal:admin_dashboard')
+    return redirect('portal:dashboard')
 
 def login_view(request):
     if request.user.is_authenticated:
-        if request.user.role == 'admin' or request.user.is_staff:
-            return redirect('portal:admin_dashboard')
-        if request.user.role == 'instructor':
-            return redirect('portal:instructor_dashboard')
-        return redirect('portal:dashboard')
+        return redirect_by_role(request.user)
 
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
@@ -48,15 +29,10 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             messages.success(request, f"Welcome back, {user.first_name or user.username}!")
-
             next_url = request.GET.get('next')
             if next_url:
                 return redirect(next_url)
-            if user.role == 'admin' or user.is_staff:
-                return redirect('portal:admin_dashboard')
-            if user.role == 'instructor':
-                return redirect('portal:instructor_dashboard')
-            return redirect('portal:dashboard')
+            return redirect_by_role(user)
         else:
             messages.error(request, "Invalid username or password.")
     else:
@@ -64,12 +40,10 @@ def login_view(request):
 
     return render(request, 'accounts/login.html', {'form': form})
 
-
 def logout_view(request):
     logout(request)
     messages.info(request, "You have been logged out.")
     return redirect('accounts:login')
-
 
 @login_required
 def profile_view(request):
@@ -89,7 +63,6 @@ def profile_view(request):
         'approved_enrollments': approved_enrollments,
     })
 
-
 @login_required
 def change_password_view(request):
     if request.method == 'POST':
@@ -105,7 +78,6 @@ def change_password_view(request):
         form = PasswordChangeForm(request.user)
 
     return render(request, 'accounts/change_password.html', {'form': form})
-
 
 @login_required
 def download_admission_letter(request, enrollment_id):
@@ -168,3 +140,47 @@ def download_admission_letter(request, enrollment_id):
     p.showPage()
     p.save()
     return response
+
+def register_view(request):
+    from .forms import StudentRegistrationForm
+    if request.method == 'POST':
+        username = (request.POST.get('username') or '').strip()
+        first_name = (request.POST.get('first_name') or '').strip()
+        last_name = (request.POST.get('last_name') or '').strip()
+        email = (request.POST.get('email') or '').strip()
+        phone = (request.POST.get('phone_number') or '').strip()
+        password1 = request.POST.get('password1') or ''
+        password2 = request.POST.get('password2') or ''
+
+        if not username:
+            messages.error(request, "Username is required. Please enter a username.")
+        elif User.objects.filter(username=username).exists():
+            messages.error(request, "That username is already taken. Try another.")
+        elif email and User.objects.filter(email=email).exists():
+            messages.error(request, "That email is already registered. Try logging in.")
+        elif not password1 or password1 != password2:
+            messages.error(request, "Passwords do not match.")
+        elif len(password1) < 8:
+            messages.error(request, "Password must be at least 8 characters.")
+        else:
+            if phone.startswith('07') or phone.startswith('01'):
+                phone = '254' + phone[1:]
+            elif phone.startswith('+254'):
+                phone = phone[1:]
+            user = User.objects.create_user(
+                username=username, email=email, password=password1,
+                first_name=first_name, last_name=last_name,
+            )
+            if hasattr(user, 'phone_number'):
+                user.phone_number = phone
+            if hasattr(user, 'role'):
+                user.role = 'student'
+            user.save()
+            login(request, user)
+            messages.success(request, f"Welcome, {username}!")
+            return redirect_by_role(user)
+        form = StudentRegistrationForm(request.POST)
+        return render(request, 'accounts/register.html', {'form': form})
+
+    form = StudentRegistrationForm()
+    return render(request, 'accounts/register.html', {'form': form})

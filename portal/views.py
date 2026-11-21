@@ -127,6 +127,8 @@ def download_transcript(request):
     if not results:
         p.drawString(50, y, "No published exam results on record.")
 
+    from portal.pdf_utils import draw_official_stamp
+    draw_official_stamp(p, x=430, y=110)
     p.showPage()
     p.save()
     return response
@@ -274,6 +276,29 @@ def admin_dashboard(request):
     if request.method == 'POST':
         action = request.POST.get('action')
 
+        if action == 'create_instructor':
+            uname = request.POST.get('username', '').strip()
+            pwd = request.POST.get('password', '').strip()
+            if not uname or not pwd:
+                messages.error(request, 'Username and password are required.')
+            elif User.objects.filter(username=uname).exists():
+                messages.error(request, 'That username already exists.')
+            else:
+                inst = User.objects.create_user(
+                    username=uname,
+                    email=request.POST.get('email', '').strip(),
+                    password=pwd,
+                    first_name=request.POST.get('first_name', '').strip(),
+                    last_name=request.POST.get('last_name', '').strip()
+                )
+                User.objects.filter(id=inst.id).update(
+                    role='instructor',
+                    admission_number=None,
+                    phone_number=request.POST.get('phone_number', '').strip()
+                )
+                messages.success(request, f'Instructor {uname} created and ready.')
+                return redirect('portal:admin_dashboard')
+
         if action == 'add_course':
             course_form = CourseForm(request.POST)
             if course_form.is_valid():
@@ -480,6 +505,29 @@ def admin_dashboard(request):
     if request.method == 'POST':
         action = request.POST.get('action')
 
+        if action == 'create_instructor':
+            username = request.POST.get('username', '').strip()
+            email = request.POST.get('email', '').strip()
+            password = request.POST.get('password', '')
+            first_name = request.POST.get('first_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            phone = request.POST.get('phone_number', '').strip()
+            from django.contrib.auth import get_user_model
+            InstructorUser = get_user_model()
+            if not username or not password:
+                messages.error(request, "Username and Temporary Password are required.")
+            elif InstructorUser.objects.filter(username=username).exists():
+                messages.error(request, f"Username {username} already exists.")
+            else:
+                user = InstructorUser.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+                if hasattr(user, 'role'):
+                    user.role = 'instructor'
+                if hasattr(user, 'phone_number'):
+                    user.phone_number = phone
+                user.is_staff = False
+                user.save()
+                messages.success(request, f"Instructor {username} created successfully! They can now log in.")
+            return redirect('portal:admin_dashboard')
         if action == 'add_course':
             course_form = CourseForm(request.POST)
             if course_form.is_valid():
@@ -664,3 +712,120 @@ def delete_team_member(request, member_id):
     member.delete()
     messages.info(request, f"Removed {member.full_name} from the team list.")
     return redirect('portal:admin_dashboard')
+
+# ===== ADMIN ONLY - USER MANAGEMENT =====
+from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth import get_user_model
+
+def is_admin_user(user):
+    return user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'admin')
+
+@user_passes_test(is_admin_user)
+def admin_users(request):
+    User = get_user_model()
+    # ?role=instructor or ?role=student to filter, ?q=search
+    role = request.GET.get('role', '')
+    q = request.GET.get('q', '')
+    users = User.objects.all().order_by('-date_joined')
+    if role:
+        users = users.filter(role=role)
+    if q:
+        users = users.filter(username__icontains=q) | users.filter(email__icontains=q) | users.filter(first_name__icontains=q)
+    return render(request, 'portal/admin_users.html', {'users': users, 'role_filter': role, 'q': q})
+
+@user_passes_test(is_admin_user)
+def admin_create_instructor(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        User = get_user_model()
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already taken.")
+            return redirect('portal:admin_create_instructor')
+        user = User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+        user.role = 'instructor'
+        user.is_staff = False  # NOT staff, so he doesn't get mistaken for admin
+        user.save()
+        messages.success(request, f"Instructor {username} created.")
+        return redirect('portal:admin_users')
+    return render(request, 'portal/admin_create_instructor.html')
+
+@user_passes_test(is_admin_user)
+def admin_delete_user(request, user_id):
+    User = get_user_model()
+    user_to_delete = get_object_or_404(User, id=user_id)
+    # Safety: Admin cannot delete himself or another superuser
+    if user_to_delete == request.user:
+        messages.error(request, "You cannot delete yourself.")
+        return redirect('portal:admin_users')
+    if user_to_delete.is_superuser:
+        messages.error(request, "Cannot delete a superuser.")
+        return redirect('portal:admin_users')
+    if request.method == 'POST':
+        username = user_to_delete.username
+        role = getattr(user_to_delete, 'role', '')
+        # This deletes User + all related records (courses, enrollments, etc.) via CASCADE
+        user_to_delete.delete()
+        messages.success(request, f"{role.capitalize()} {username} and all their records deleted.")
+        return redirect('portal:admin_users')
+    return render(request, 'portal/admin_confirm_delete.html', {'delete_user': user_to_delete})
+
+from django.contrib.auth.decorators import user_passes_test
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+
+def is_admin_user(user):
+    return user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'admin')
+
+@user_passes_test(is_admin_user)
+def admin_users(request):
+    User = get_user_model()
+    role = request.GET.get('role', '')
+    q = request.GET.get('q', '')
+    users = User.objects.all().order_by('-date_joined')
+    if role:
+        users = users.filter(role=role)
+    if q:
+        users = users.filter(username__icontains=q)
+    return render(request, 'portal/admin_users.html', {'users': users, 'role_filter': role, 'q': q})
+
+@user_passes_test(is_admin_user)
+def admin_create_instructor(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        first_name = request.POST.get('first_name', '')
+        last_name = request.POST.get('last_name', '')
+        User = get_user_model()
+        if User.objects.filter(username=username).exists():
+            messages.error(request, "Username already taken.")
+            return redirect('portal:admin_create_instructor')
+        user = User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+        user.role = 'instructor'
+        user.is_staff = False
+        user.save()
+        messages.success(request, f"Instructor {username} created.")
+        return redirect('portal:admin_users')
+    return render(request, 'portal/admin_create_instructor.html')
+
+@user_passes_test(is_admin_user)
+def admin_delete_user(request, user_id):
+    User = get_user_model()
+    user_to_delete = get_object_or_404(User, id=user_id)
+    if user_to_delete == request.user:
+        messages.error(request, "You cannot delete yourself.")
+        return redirect('portal:admin_users')
+    if user_to_delete.is_superuser:
+        messages.error(request, "Cannot delete a superuser.")
+        return redirect('portal:admin_users')
+    if request.method == 'POST':
+        username = user_to_delete.username
+        role = getattr(user_to_delete, 'role', '')
+        user_to_delete.delete()
+        messages.success(request, f"{role} {username} deleted.")
+        return redirect('portal:admin_users')
+    return render(request, 'portal/admin_confirm_delete.html', {'delete_user': user_to_delete})

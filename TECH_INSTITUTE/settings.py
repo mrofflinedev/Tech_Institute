@@ -161,3 +161,9 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+if os.environ.get('DB_ENGINE') == 'sqlite':
+    DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': BASE_DIR / 'db.sqlite3'}}
+
+ALLOWED_HOSTS = ['techinstitute.pythonanywhere.com', 'Techinstitute.pythonanywhere.com', '127.0.0.1', 'localhost']
+CSRF_TRUSTED_ORIGINS = ['https://techinstitute.pythonanywhere.com']
